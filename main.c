@@ -79,7 +79,7 @@ int main(int argc, char* argv[]) {
     int watch_descriptor = inotify_add_watch(
         inotify_fd, "./test.txt",
         IN_ACCESS | IN_ATTRIB | IN_MODIFY | IN_OPEN | IN_CREATE | IN_DELETE |
-            IN_CLOSE_WRITE | IN_CLOSE_NOWRITE);
+            IN_ISDIR | IN_CLOSE_WRITE | IN_CLOSE_NOWRITE);
 
     if (watch_descriptor == -1) goto error;
 
@@ -261,11 +261,9 @@ int main(int argc, char* argv[]) {
 
         if (result > 0) {
             int length = 0;
-            LOG("result: %d\n", result);
+            LOG("received %d epoll events\n", result);
             for (int i = 0; i < result; ++i) {
                 struct epoll_event* ev = &events[i];
-                LOG("ev->events: %d\n", ev->events);
-
                 // LOG("ev->data.fd: %d\n", ev->data.fd);
                 // LOG("inotify_fd: %d\n", inotify_fd);
                 if (ev->data.fd == inotify_fd) {
@@ -276,37 +274,66 @@ int main(int argc, char* argv[]) {
                         goto error;
                     }
 
-                    for (struct inotify_event* event =
-                             (struct inotify_event*)buffer;
-                         (char*)event < buffer + length;
-                         event += EVENT_SIZE + event->len) {
-                        if (event->len) {
-                            if (event->mask & IN_CREATE) {
-                                if (event->mask & IN_ISDIR) {
-                                    printf("Directory %s was created.\n",
-                                           event->name);
-                                } else {
-                                    printf("File %s was created.\n",
-                                           event->name);
-                                }
-                            } else if (event->mask & IN_DELETE) {
-                                if (event->mask & IN_ISDIR) {
-                                    printf("Directory %s was deleted.\n",
-                                           event->name);
-                                } else {
-                                    printf("File %s was deleted.\n",
-                                           event->name);
-                                }
-                            } else if (event->mask & IN_MODIFY) {
-                                if (event->mask & IN_ISDIR) {
-                                    printf("Directory %s was modified.\n",
-                                           event->name);
-                                } else {
-                                    printf("File %s was modified.\n",
-                                           event->name);
-                                }
+                    for (char* p = buffer; p < buffer + length;) {
+                        struct inotify_event* event = (struct inotify_event*)p;
+
+                        LOG("------------------------\n");
+                        LOG("event->mask: %d\n", event->mask);
+
+                        const char* event_name =
+                            event->len ? event->name : "[Unknown]";
+
+                        if (event->mask & IN_CREATE) {
+                            if (event->mask & IN_ISDIR) {
+                                LOG("Directory %s was created.\n", event_name);
+                            } else {
+                                LOG("File %s was created.\n", event_name);
                             }
+                        } else if (event->mask & IN_DELETE) {
+                            if (event->mask & IN_ISDIR) {
+                                LOG("Directory %s was deleted.\n", event_name);
+                            } else {
+                                LOG("File %s was deleted.\n", event_name);
+                            }
+                        } else if (event->mask & IN_MODIFY) {
+                            if (event->mask & IN_ISDIR) {
+                                LOG("Directory %s was modified.\n", event_name);
+                            } else {
+                                LOG("File %s was modified.\n", event_name);
+                            }
+                        } else if (event->mask == IN_ATTRIB) {
+                            if (event->mask & IN_ISDIR) {
+                                LOG("Directory %s metadata changed.\n",
+                                    event_name);
+                            } else {
+                                LOG("File %s metadata changed.\n", event_name);
+                            }
+                        } else if (event->mask == IN_OPEN) {
+                            if (event->mask & IN_ISDIR) {
+                                LOG("Directory %s was opened.\n", event_name);
+                            } else {
+                                LOG("File %s was opened.\n", event_name);
+                            }
+                        } else if (event->mask == IN_ACCESS) {
+                            if (event->mask & IN_ISDIR) {
+                                LOG("Directory %s was accessed.\n", event_name);
+                            } else {
+                                LOG("File %s was accessed.\n", event_name);
+                            }
+                        } else if (event->mask & IN_CLOSE_NOWRITE) {
+                            if (!(event->mask & IN_ISDIR))
+                                LOG("IN_CLOSE_NOWRITE(%s): file close without "
+                                    "write\n",
+                                    event_name);
+                        } else if (event->mask & IN_CLOSE_WRITE) {
+                            if (!(event->mask & IN_ISDIR))
+                                LOG("IN_CLOSE_WRITE(%s): file close with "
+                                    "write\n",
+                                    event_name);
                         }
+
+                        LOG("------------------------\n\n");
+                        p += EVENT_SIZE + event->len;
                     }
                 } else if (ev->data.fd == STDIN_FILENO) {
                     // LOG("STDIN_FILENO not handled yet \n");

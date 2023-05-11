@@ -22,7 +22,7 @@ The central concept of the epoll API is the epoll instance, an
      list.  The ready list is dynamically populated by the kernel as
      a result of I/O activity on those file descriptors.
 
-## header
+## header file
 `sys/epoll.h`
 
 ## epoll vs select

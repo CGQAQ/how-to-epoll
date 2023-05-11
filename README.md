@@ -51,3 +51,6 @@ Quote from [paxdiablo](https://stackoverflow.com/a/10011348), license see [CC BY
 
 So the `size` if only checked and had been ignored immediately, I think you should always use the epoll_create1 for such reason
 
+
+## example
+See [here](./main.c)

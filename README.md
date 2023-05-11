@@ -82,3 +82,5 @@ reason
 ## example
 
 See [here](./main.c)
+Run with `make run-dir`, do file operations in `test_data` folder, and see what file operations has been made in the terminal
+![image](https://github.com/CGQAQ/how-to-epoll/assets/15936231/62e0da0c-74a2-4801-842b-48f8d6788ef0)

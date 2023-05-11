@@ -7,7 +7,7 @@ see [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/)
 > There's a lot of misinformation about this, but the real reason is this:
 >
 > A typical server might be dealing with, say, 200 connections. It will service every connection that needs to have data
-> written or read and then it will need to wait until there's more work to do. While it's waiting, it needs to be
+> written or read, and then it will need to wait until there's more work to do. While it's waiting, it needs to be
 > interrupted if data is received on any of those 200 connections.
 > With select, the kernel has to add the process to 200 wait lists, one for each connection. To do this, it needs a "
 > thunk" to attach the process to the wait list. When the process finally does wake up, it needs to be removed from all

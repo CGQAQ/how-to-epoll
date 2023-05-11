@@ -14,6 +14,11 @@
 #define BUF_LEN (MAX_EVENTS * (EVENT_SIZE + 16))
 
 int main(int argc, char* argv[]) {
+    if (argc < 2) {
+        eprintf("%s [files to listen]\n", argv[0]);
+        return RET_CODE_ERROR;
+    }
+
     int result = 0;
     const int inotify_fd = inotify_init();
 
@@ -25,9 +30,9 @@ int main(int argc, char* argv[]) {
     // On success, these system calls return a file descriptor (a
     // nonnegative integer).  On error, -1 is returned, and `errno` is set
     // to indicate the error.
-    int epfd = epoll_create1(0);
+    int ep_fd = epoll_create1(0);
 
-    if (epfd == -1) {
+    if (ep_fd == -1) {
         // ERRORS         top
         //    EINVAL size is not positive.
         //
@@ -69,33 +74,35 @@ int main(int argc, char* argv[]) {
         return RET_CODE_ERROR;
     }
 
-    // // 2. get the file descriptor you interested in.
-    // int fd = open("./test.txt", O_CREAT);
+    int* inotify_wds = (int*)malloc(argc - 1);
+    memset(inotify_wds, -1, argc - 1);
+    for (int i = 1; i < argc; ++i) {
+        int watch_descriptor = inotify_add_watch(
+            inotify_fd, argv[i],
+            IN_ACCESS | IN_ATTRIB | IN_MODIFY | IN_OPEN | IN_CREATE | IN_DELETE |
+                IN_ISDIR | IN_CLOSE_WRITE | IN_CLOSE_NOWRITE);
 
-    // if (fd == -1) {
-    //     goto error;
-    // }
+        if (watch_descriptor == -1) {
+            goto error;
+        }
 
-    int watch_descriptor = inotify_add_watch(
-        inotify_fd, "./test.txt",
-        IN_ACCESS | IN_ATTRIB | IN_MODIFY | IN_OPEN | IN_CREATE | IN_DELETE |
-            IN_ISDIR | IN_CLOSE_WRITE | IN_CLOSE_NOWRITE);
+        inotify_wds[i] = watch_descriptor;
+    }
 
-    if (watch_descriptor == -1) goto error;
 
-    // 3. put the inotify file descriptor you interested in into the epfd that
+    // 3. put the inotify file descriptor you interested in into the ep_fd that
     // we created before's interest list so that we can be notified as soon as
     // the inotify receives events
     struct epoll_event ep_ev_file;
     ep_ev_file.events = EPOLLIN;
     ep_ev_file.data.fd = inotify_fd;
-    result = epoll_ctl(epfd, EPOLL_CTL_ADD, inotify_fd, &ep_ev_file);
+    result = epoll_ctl(ep_fd, EPOLL_CTL_ADD, inotify_fd, &ep_ev_file);
     if (result == -1) {
         // ref: https://man7.org/linux/man-pages/man2/epoll_ctl.2.html
         // ERRORS section
         switch (errno) {
             case EBADF:
-                eprintf("EBADF  epfd or fd is not a valid file descriptor.");
+                eprintf("EBADF  ep_fd or fd is not a valid file descriptor.");
                 break;
             case EEXIST:
                 eprintf(
@@ -104,9 +111,9 @@ int main(int argc, char* argv[]) {
                 break;
             case EINVAL:
                 eprintf(
-                    "EINVAL epfd is not an epoll file descriptor, or fd is the "
+                    "EINVAL ep_fd is not an epoll file descriptor, or fd is the "
                     "same as"
-                    "epfd, or the requested operation op is not supported by"
+                    "ep_fd, or the requested operation op is not supported by"
                     "this interface.");
                 eprintf("\nOR\n");
                 eprintf(
@@ -120,7 +127,7 @@ int main(int argc, char* argv[]) {
                 eprintf(
                     "EINVAL op was EPOLL_CTL_MOD and the EPOLLEXCLUSIVE flag "
                     "has"
-                    "previously been applied to this epfd, fd pair.");
+                    "previously been applied to this ep_fd, fd pair.");
                 eprintf("\nOR\n");
                 eprintf(
                     "EPOLLEXCLUSIVE was specified in event and fd refers to an"
@@ -162,81 +169,6 @@ int main(int argc, char* argv[]) {
         return RET_CODE_ERROR;
     }
 
-    // struct epoll_event ep_ev_stdin;
-    // ep_ev_stdin.events = EPOLLIN;
-    // ep_ev_stdin.data.fd = STDIN_FILENO;
-    // // for Ctrl+C and more...
-    // result = epoll_ctl(epfd, EPOLL_CTL_ADD, STDIN_FILENO, &ep_ev_stdin);
-    // if (result == -1) {
-    //     // ref: https://man7.org/linux/man-pages/man2/epoll_ctl.2.html
-    //     // ERRORS section
-    //     switch (errno) {
-    //         case EBADF:
-    //             eprintf("EBADF  epfd or fd is not a valid file descriptor.");
-    //             break;
-    //         case EEXIST:
-    //             eprintf(
-    //                 "EEXIST op was EPOLL_CTL_ADD, and the supplied file "
-    //                 "descriptor fd");
-    //             break;
-    //         case EINVAL:
-    //             eprintf(
-    //                 "EINVAL epfd is not an epoll file descriptor, or fd is
-    //                 the " "same as" "epfd, or the requested operation op is
-    //                 not supported by" "this interface.");
-    //             eprintf("\nOR\n");
-    //             eprintf(
-    //                 "EINVAL An invalid event type was specified along with"
-    //                 "EPOLLEXCLUSIVE in events.");
-    //             eprintf("\nOR\n");
-    //             eprintf(
-    //                 "EINVAL op was EPOLL_CTL_MOD and events included "
-    //                 "EPOLLEXCLUSIVE.");
-    //             eprintf("\nOR\n");
-    //             eprintf(
-    //                 "EINVAL op was EPOLL_CTL_MOD and the EPOLLEXCLUSIVE flag
-    //                 " "has" "previously been applied to this epfd, fd
-    //                 pair.");
-    //             eprintf("\nOR\n");
-    //             eprintf(
-    //                 "EPOLLEXCLUSIVE was specified in event and fd refers to
-    //                 an" "epoll instance.");
-    //             break;
-    //         case ELOOP:
-    //             eprintf(
-    //                 "fd refers to an epoll instance and this EPOLL_CTL_ADD"
-    //                 "operation would result in a circular loop of epoll"
-    //                 "instances monitoring one another or"
-    //                 "a nesting depth of epoll instances greater than 5. ");
-    //             break;
-    //         case ENOENT:
-    //             eprintf(
-    //                 "ENOMEM There was insufficient memory to handle the "
-    //                 "requested op"
-    //                 "control operation.");
-    //             break;
-    //         case ENOSPC:
-    //             eprintf(
-    //                 "ENOSPC The limit imposed by "
-    //                 "/proc/sys/fs/epoll/max_user_watches"
-    //                 "was encountered while trying to register "
-    //                 "(EPOLL_CTL_ADD) a"
-    //                 "new file descriptor on an epoll instance.  See "
-    //                 "epoll(7)"
-    //                 "for further details.");
-    //             break;
-    //         case EPERM:
-    //             eprintf(
-    //                 "EPERM  The target file fd does not support epoll.  This
-    //                 " "error can" "occur if fd refers to, for example, a
-    //                 regular file or a" "directory.");
-    //             break;
-    //         default:
-    //             unreachable("epoll_ctl return unexpected errno");
-    //     }
-    //     return RET_CODE_ERROR;
-    // }
-
     // 4. waiting for events comes in
     // The maxevents argument must be greater than zero.
 
@@ -248,7 +180,7 @@ int main(int argc, char* argv[]) {
     char buffer[BUF_LEN];
     for (;;) {
         result = epoll_wait(
-            epfd /* int __epfd */, events /* struct epoll_event * __events */,
+            ep_fd /* int __epfd */, events /* struct epoll_event * __events */,
             MAX_EVENTS /* int maxevents */, 50 /* int timeout */);
 
         if (result == -1) {
@@ -335,8 +267,6 @@ int main(int argc, char* argv[]) {
                         LOG("------------------------\n\n");
                         p += EVENT_SIZE + event->len;
                     }
-                } else if (ev->data.fd == STDIN_FILENO) {
-                    // LOG("STDIN_FILENO not handled yet \n");
                 } else {
                     unreachable("unexpected fd found");
                 }
@@ -347,6 +277,21 @@ int main(int argc, char* argv[]) {
     return RET_CODE_SUCCESS;
 
 error:
+    // free epoll fd
+    close(ep_fd);
+
+    // free inotify fd
+    close(inotify_fd);
+
+    // free wds
+    for (int i = 0; i < argc - 1; ++i) {
+        int wd = inotify_wds[i];
+        if (wd != -1) {
+            inotify_rm_watch(inotify_fd, wd);
+        }
+    }
+    free(inotify_wds);
+
     // trivial error handler
     eprintf("Something went wrong %s", strerror(errno));
     return RET_CODE_ERROR;

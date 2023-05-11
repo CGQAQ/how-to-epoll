@@ -1,7 +1,5 @@
-#include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,26 +7,7 @@
 #include <sys/inotify.h>
 #include <unistd.h>
 
-enum {
-    RET_CODE_SUCCESS = 0,
-    RET_CODE_ERROR = 255,
-};
-
-// print to stderr
-void eprintf(const char* fmt, ...) {
-    va_list args;
-    va_start(args, fmt);
-
-    fprintf(stderr, fmt, args);
-
-    va_end(args);
-}
-
-void unreachable(const char* errmsg) {
-    assert(errmsg != NULL);
-    eprintf("This should never happend %s", errmsg);
-    exit(RET_CODE_ERROR);
-}
+#include "utils.h"
 
 int main(int argc, char* argv[]) {
     int result = 0;
@@ -275,6 +254,7 @@ int main(int argc, char* argv[]) {
         }
 
         switch (ep_ev.events & EPOLLIN) {}
+        LOG("on event %d, result: %d \n", ep_ev.events, result);
     }
 
     return RET_CODE_SUCCESS;

@@ -9,5 +9,11 @@ program: main.c utils.c utils.h
 run: program
 	./program
 
+run-file: program
+	./program ./test_data/test.txt
+
+run-dir: program
+	./program ./test_data
+
 clean:
 	rm -f program

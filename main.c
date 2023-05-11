@@ -217,40 +217,40 @@ int main(int argc, char* argv[]) {
 
                         if (event->mask & IN_CREATE) {
                             if (event->mask & IN_ISDIR) {
-                                LOG("Directory %s was created.\n", event_name);
+                                LOG("IN_CREATE(%s): Directory was created.\n", event_name);
                             } else {
-                                LOG("File %s was created.\n", event_name);
+                                LOG("IN_CREATE(%s): File was created.\n", event_name);
                             }
                         } else if (event->mask & IN_DELETE) {
                             if (event->mask & IN_ISDIR) {
-                                LOG("Directory %s was deleted.\n", event_name);
+                                LOG("IN_DELETE(%s): Directory was deleted.\n", event_name);
                             } else {
-                                LOG("File %s was deleted.\n", event_name);
+                                LOG("IN_DELETE(%s): File was deleted.\n", event_name);
                             }
                         } else if (event->mask & IN_MODIFY) {
                             if (event->mask & IN_ISDIR) {
-                                LOG("Directory %s was modified.\n", event_name);
+                                LOG("IN_MODIFY(%s): Directory was modified.\n", event_name);
                             } else {
-                                LOG("File %s was modified.\n", event_name);
+                                LOG("IN_MODIFY(%s): File was modified.\n", event_name);
                             }
                         } else if (event->mask == IN_ATTRIB) {
                             if (event->mask & IN_ISDIR) {
-                                LOG("Directory %s metadata changed.\n",
+                                LOG("IN_ATTRIB(%s): Directory metadata changed.\n",
                                     event_name);
                             } else {
-                                LOG("File %s metadata changed.\n", event_name);
+                                LOG("IN_ATTRIB(%s): File metadata changed.\n", event_name);
                             }
                         } else if (event->mask == IN_OPEN) {
                             if (event->mask & IN_ISDIR) {
-                                LOG("Directory %s was opened.\n", event_name);
+                                LOG("IN_OPEN(%s): Directory was opened.\n", event_name);
                             } else {
-                                LOG("File %s was opened.\n", event_name);
+                                LOG("IN_OPEN(%s): File was opened.\n", event_name);
                             }
                         } else if (event->mask == IN_ACCESS) {
                             if (event->mask & IN_ISDIR) {
-                                LOG("Directory %s was accessed.\n", event_name);
+                                LOG("IN_ACCESS(%s): Directory  was accessed.\n", event_name);
                             } else {
-                                LOG("File %s was accessed.\n", event_name);
+                                LOG("IN_ACCESS(%s): File was accessed.\n", event_name);
                             }
                         } else if (event->mask & IN_CLOSE_NOWRITE) {
                             if (!(event->mask & IN_ISDIR))
